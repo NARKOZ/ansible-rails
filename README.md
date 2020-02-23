@@ -8,12 +8,12 @@ application is served via Puma application server.
 
 _Note: unpolished since 2019._
 
-# Requirements
+## Requirements
 
 + Server: CentOS 7 and upper (with SElinux disabled)
 + Client: Ansible 2.7 and upper
 
-# Configuration
+## Configuration
 
 Copy `group_vars/all.yml.example` to `group_vars/all.yml` and set values.
 
@@ -21,7 +21,7 @@ Set server IP address and port in `production` file.
 
 Modify other values based on your needs.
 
-# Usage
+## Usage
 
 Initial run:
 
