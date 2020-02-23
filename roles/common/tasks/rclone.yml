@@ -1,0 +1,15 @@
+---
+- name: create rclone_setup directory
+  file:
+    path: /tmp/rclone_setup
+    state: directory
+    mode: 0775
+
+- name: download and extract rclone
+  unarchive:
+    src: https://downloads.rclone.org/rclone-current-linux-amd64.zip
+    dest: /tmp/rclone_setup
+    remote_src: yes
+
+- name: mount rclone to enviroment
+  command: cd /tmp/rclone_setup && cp rclone /usr/bin/rclone.new && chmod 755 /usr/bin/rclone.new && chown root:root /usr/bin/rclone.new && mv /usr/bin/rclone.new /usr/bin/rclone && mkdir -p /usr/local/share/man/man1 && cp rclone.1 /usr/local/share/man/man1/ && mandb

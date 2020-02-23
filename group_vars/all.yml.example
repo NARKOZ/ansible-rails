@@ -1,0 +1,27 @@
+---
+common:
+  ssh_port:
+  root_password:
+
+app:
+  secret_key_base:
+  user:
+    username:
+    password:
+
+nginx:
+  domain:
+  app_name:
+
+postgres:
+  username:
+  password:
+  database:
+
+rpm:
+  remi: 'https://rpms.remirepo.net/enterprise/7/remi/x86_64/remi-release-7.7-1.el7.remi.noarch.rpm'
+  node: 'https://rpm.nodesource.com/pub_12.x/el/7/x86_64/nodesource-release-el7-1.noarch.rpm'
+  ruby: 'https://github.com/feedforce/ruby-rpm/releases/download/2.6.5/ruby-2.6.5-1.el7.centos.x86_64.rpm'
+  nginx: 'https://nginx.org/packages/centos/7/x86_64/RPMS/nginx-1.16.1-1.el7.ngx.x86_64.rpm'
+  postgresql: 'https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm'
+  pyOpenSSL: 'https://cbs.centos.org/kojifiles/packages/pyOpenSSL/17.3.0/3.el7/noarch/python2-pyOpenSSL-17.3.0-3.el7.noarch.rpm'

@@ -1,0 +1,57 @@
+---
+- name: disable ping responses
+  sysctl:
+    name: net.ipv4.icmp_echo_ignore_all
+    value: 1
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: increase open files limit
+  blockinfile:
+    path: /etc/security/limits.conf
+    block: |
+      *         hard    nofile      500000
+      *         soft    nofile      500000
+      root      hard    nofile      500000
+      root      soft    nofile      500000
+
+- name: set system-wide open files limit
+  sysctl:
+    name: fs.file-max
+    value: 2097152
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: set overcommit memory setting
+  sysctl:
+    name: vm.overcommit_memory
+    value: 1
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: set somaxconn setting
+  sysctl:
+    name: net.core.somaxconn
+    value: 65535
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: set tcp_max_syn_backlog setting
+  sysctl:
+    name: net.ipv4.tcp_max_syn_backlog
+    value: 65536
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: disable transparent huge pages
+  command: echo never > /sys/kernel/mm/transparent_hugepage/enabled
+
+- name: disable transparent huge pages on boot
+  lineinfile:
+    path: /etc/rc.local
+    line: echo never > /sys/kernel/mm/transparent_hugepage/enabled

@@ -1,0 +1,29 @@
+---
+- name: change ssh port
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: ^Port\s
+    line: Port {{ common.ssh_port }}
+  register: ssh_port
+
+- name: insert firewalld rule for ssh port
+  firewalld:
+    port: "{{ common.ssh_port }}/tcp"
+    state: enabled
+    permanent: yes
+    immediate: yes
+  notify: reload firewalld
+
+- name: restart sshd
+  service:
+    name: sshd
+    state: restarted
+  when: ssh_port.changed
+
+- name: remove ssh service from firewalld
+  firewalld:
+    service: ssh
+    state: disabled
+    permanent: yes
+    immediate: yes
+  notify: reload firewalld

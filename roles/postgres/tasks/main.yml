@@ -1,0 +1,27 @@
+---
+- name: install postgresql repo
+  yum:
+    name: "{{ rpm.postgresql }}"
+    state: present
+
+- name: install postgresql-11
+  yum:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - postgresql11-server
+      - postgresql11-contrib
+      - postgresql11-devel
+      - python-psycopg2  # ansible
+
+- name: init database
+  command: /usr/pgsql-11/bin/postgresql-11-setup initdb creates=/var/lib/pgsql/11/data/PG_VERSION
+
+- name: start postgresql-11
+  service:
+    name: postgresql-11
+    state: started
+    enabled: yes
+
+- include: setup_db.yml

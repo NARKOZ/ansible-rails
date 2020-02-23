@@ -1,0 +1,4 @@
+check process puma_{{ nginx.app_name }}_production
+  with pidfile "/var/www/{{ nginx.app_name }}/shared/tmp/pids/puma.pid"
+  start program = "/usr/bin/sudo -iu {{ app.user.username }} /bin/bash -c 'cd /var/www/{{ nginx.app_name }}/current && bundle exec puma -C /var/www/{{ nginx.app_name }}/shared/puma.rb --daemon'"
+  stop program = "/usr/bin/sudo -iu {{ app.user.username }} /bin/bash -c 'cd /var/www/{{ nginx.app_name }}/current && bundle exec pumactl -S /var/www/{{ nginx.app_name }}/shared/tmp/pids/puma.state stop'"

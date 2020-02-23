@@ -1,0 +1,11 @@
+/var/www/{{ nginx.app_name }}/shared/log/production.log {
+        compress
+        copytruncate
+        create
+        delaycompress
+        maxage 180
+        missingok
+        notifempty
+        rotate 32
+        size 100M
+}

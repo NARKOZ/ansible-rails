@@ -1,0 +1,38 @@
+---
+- name: install ruby deps
+  yum:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - gcc
+      - gcc-c++
+      - gdbm-devel
+      - glibc-devel
+      - libffi-devel
+      - libxml2-devel  # nokogiri gem
+      - libxslt-devel  # nokogiri gem
+      - libyaml-devel
+      - ncurses-devel
+      - openssl-devel
+      - patch  # nokogiri gem
+      - readline-devel
+      - zlib-devel
+
+- name: install ruby
+  yum:
+    name: "{{ rpm.ruby }}"
+    state: present
+
+- name: upgrade rubygems
+  command: gem update --system
+
+- name: set gemrc for app user
+  shell: "echo 'gem: --no-document' > ~/.gemrc creates=~/.gemrc"
+  become: true
+  become_user: "{{ app.user.username }}"
+
+- name: set bundler config
+  command: bundle config build.pg --with-pg-config=/usr/pgsql-11/bin/pg_config creates=~/.bundle/config
+  become: true
+  become_user: "{{ app.user.username }}"

@@ -1,0 +1,97 @@
+upstream {{ nginx.app_name }} {
+    server unix:/var/www/{{ nginx.app_name }}/shared/tmp/sockets/puma.sock fail_timeout=0;
+}
+
+server {
+    listen [::]:80;
+    listen 80;
+
+    if ($request_method !~ ^(GET|HEAD)$) { return 405; }
+
+    server_name {{ nginx.domain }} www.{{ nginx.domain }};
+    return 301 https://{{ nginx.domain }}$request_uri;
+}
+
+server {
+    listen [::]:443 ssl http2;
+    listen 443 ssl http2;
+
+    if ($request_method !~ ^(GET|HEAD)$) { return 405; }
+
+    # listen on the wrong host
+    server_name www.{{ nginx.domain }};
+
+    ssl_certificate /var/lib/acme/live/www.{{ nginx.domain }}/fullchain;
+    ssl_certificate_key /var/lib/acme/live/www.{{ nginx.domain }}/privkey;
+    ssl_trusted_certificate /var/lib/acme/live/{{ nginx.domain }}/chain;
+    include /etc/nginx/includes/ssl.conf;
+
+    return 301 $scheme://{{ nginx.domain }}$request_uri;
+}
+
+server {
+    listen [::]:443 ssl http2;
+    listen 443 ssl http2;
+
+    if ($request_method !~ ^(GET|HEAD|POST|PATCH|PUT|DELETE|OPTIONS)$) { return 405; }
+
+    server_name {{ nginx.domain }};
+
+    ssl_certificate /var/lib/acme/live/www.{{ nginx.domain }}/fullchain;
+    ssl_certificate_key /var/lib/acme/live/www.{{ nginx.domain }}/privkey;
+    ssl_trusted_certificate /var/lib/acme/live/{{ nginx.domain }}/chain;
+    include /etc/nginx/includes/ssl.conf;
+
+    root /var/www/{{ nginx.app_name }}/current/public;
+    access_log /var/www/{{ nginx.app_name }}/shared/log/nginx_access.log;
+    error_log /var/www/{{ nginx.app_name }}/shared/log/nginx_error.log warn;
+
+    try_files $uri/index.html $uri @{{ nginx.app_name }};
+    add_header X-Cache-Status $cache_status;
+
+    location @{{ nginx.app_name }} {
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header Connection "";
+        ### Handle Web Socket connections
+        # proxy_set_header Upgrade $http_upgrade;
+        # proxy_set_header Connection $connection_upgrade;
+        ###
+        proxy_hide_header Strict-Transport-Security;
+        proxy_redirect off;
+        proxy_http_version 1.1;
+        proxy_pass http://{{ nginx.app_name }};
+    }
+
+    location = /favicon.ico {
+        expires 30d;
+        access_log off;
+    }
+
+    location ~ ^/(assets|packs)/ {
+        etag off;
+        access_log off;
+        gzip_static on;
+        expires max;
+        add_header Cache-Control public,immutable;
+    }
+
+    location ^~ /uploads/ {
+        etag off;
+        access_log off;
+        expires max;
+        add_header Cache-Control public;
+    }
+
+    location ~* \.(php|cgi|aspx|jsp)$ { access_log off; return 444; }
+
+    location /.well-known/acme-challenge/ {
+        alias /var/run/acme/acme-challenge/;
+    }
+
+    location ~ /\.(?!well-known\/).* { deny all; return 404; }
+
+    error_page 404 /404.html;
+    error_page 500 502 503 504 /500.html;
+}

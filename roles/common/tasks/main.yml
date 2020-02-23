@@ -1,0 +1,114 @@
+---
+- name: set public key for root user
+  authorized_key:
+    user: root
+    key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+
+- name: change root user password
+  user:
+    name: root
+    password: "{{ common.root_password | password_hash('sha512', 'TOPsecret') }}"
+
+- name: set timezone to UTC
+  command: timedatectl set-timezone UTC
+  when: ansible_date_time.tz != 'UTC'
+
+- name: install EPEL
+  yum:
+    name: epel-release
+    state: present
+
+- name: add acmetool repository
+  yum_repository:
+    name: hlandau-acmetool
+    description: Copr repo for acmetool owned by hlandau
+    baseurl: https://copr-be.cloud.fedoraproject.org/results/hlandau/acmetool/epel-7-$basearch/
+    skip_if_unavailable: yes
+
+- name: install node repo
+  yum:
+    name: "{{ rpm.node }}"
+    state: present
+
+- name: install remi repo
+  yum:
+    name: "{{ rpm.remi }}"
+    state: present
+
+- name: enable remi repo
+  command: yum-config-manager --enable remi
+
+- name: import acmetool and node package signing GPG keys
+  rpm_key:
+    key: "{{ item }}"
+  with_items:
+    - https://copr-be.cloud.fedoraproject.org/results/hlandau/acmetool/pubkey.gpg
+    - https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+
+- name: upgrade all packages
+  yum:
+    name: '*'
+    state: latest
+    update_cache: yes
+
+- name: install packages
+  yum:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - acmetool
+      - deltarpm
+      - firewalld
+      - git
+      - htop
+      - monit
+      - nodejs
+      - ntp
+      - python2-cryptography # for pyOpenSSL
+      - redis
+      - tmux
+      - tree
+      - unzip
+      - wget
+
+- name: install latest pyOpenSSL
+  yum:
+    name: "{{ rpm.pyOpenSSL }}"
+    state: present
+
+- name: start services
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  with_items:
+    - firewalld
+    - monit
+    - ntpd
+    - redis
+
+- name: stop useless services
+  service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+  register: unused_disable
+  failed_when: "unused_disable is failed and ('find' not in unused_disable.msg and 'found' not in unused_disable.msg)"
+  with_items:
+    - chronyd
+    - postfix
+
+- name: remove unnecessary packages
+  yum:
+    name: "{{ packages }}"
+    state: absent
+  vars:
+    packages:
+      - chrony
+      - postfix
+
+- import_tasks: rclone.yml
+- import_tasks: kernel.yml
+- import_tasks: redis.yml
+- import_tasks: sshd.yml

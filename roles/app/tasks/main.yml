@@ -1,0 +1,50 @@
+---
+- name: create app user
+  user:
+    name: "{{ app.user.username }}"
+    password: "{{ app.user.password | password_hash('sha512', 'TOPsecret') }}"
+    groups: wheel
+    append: yes
+    generate_ssh_key: yes
+
+- name: set public key for app user
+  authorized_key:
+    user: "{{ app.user.username }}"
+    key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+
+- name: copy env.sh
+  template:
+    src: env.sh.j2
+    dest: /etc/profile.d/env.sh
+
+- name: create app directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    owner: "{{ app.user.username }}"
+    group: "{{ app.user.username }}"
+  with_items:
+    - /var/www/{{ nginx.app_name }}
+    - /var/www/{{ nginx.app_name }}/shared/config
+
+- name: copy database.yml
+  template:
+    src: database.yml.j2
+    dest: /var/www/{{ nginx.app_name }}/shared/config/database.yml
+
+- name: copy secrets.yml
+  template:
+    src: secrets.yml.j2
+    dest: /var/www/{{ nginx.app_name }}/shared/config/secrets.yml
+
+- name: copy puma monit conf
+  template:
+    src: puma.monit.j2
+    dest: /etc/monit.d/puma_{{ nginx.app_name }}_production.monit
+  notify: restart monit
+
+- name: copy logrotate config
+  template:
+    src: app_logrotate.j2
+    dest: /etc/logrotate.d/{{ nginx.app_name }}

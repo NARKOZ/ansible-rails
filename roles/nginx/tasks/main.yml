@@ -1,0 +1,90 @@
+---
+- name: add nginx repository
+  yum_repository:
+    name: nginx
+    description: nginx repo
+    baseurl: http://nginx.org/packages/centos/7/$basearch/
+
+- name: install nginx
+  yum:
+    name: "{{ rpm.nginx }}"
+    state: present
+
+- name: start nginx
+  service:
+    name: nginx
+    state: started
+    enabled: yes
+
+- name: insert firewalld rules for nginx
+  firewalld:
+    zone: public
+    service: "{{ item }}"
+    state: enabled
+    permanent: yes
+  with_items:
+    - http
+    - https
+  notify: reload firewalld
+
+- name: create directories for openssl certificate signing request
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0755
+  with_items:
+    - /etc/ssl/csr
+    - /etc/ssl/private
+
+- name: generate openssl private key
+  openssl_privatekey:
+    path: /etc/ssl/private/nginx-selfsigned.key
+
+- name: generate generate openssl certificate signing request
+  openssl_csr:
+    path: /etc/ssl/csr/nginx-selfsigned.csr
+    privatekey_path: /etc/ssl/private/nginx-selfsigned.key
+    common_name: localhost.localdomain
+    country_name: SomeCountry
+    email_address: root@localhost.localdomain
+    locality_name: SomeCity
+    organization_name: SomeOrganization
+    organizational_unit_name: SomeOrganizationalUnit
+    state_or_province_name: SomeState
+
+- name: generate self signed certificate for nginx
+  openssl_certificate:
+    path: /etc/ssl/certs/nginx-selfsigned.crt
+    privatekey_path: /etc/ssl/private/nginx-selfsigned.key
+    csr_path: /etc/ssl/csr/nginx-selfsigned.csr
+    provider: selfsigned
+
+- name: delete nginx default config
+  file:
+    path: /etc/nginx/conf.d/default.conf
+    state: absent
+  notify: reload nginx
+
+- name: create directory for includes
+  file:
+    path: /etc/nginx/includes
+    state: directory
+    mode: 0755
+
+- name: copy nginx files
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - { src: nginx.conf, dest: /etc/nginx/nginx.conf }
+    - { src: mime.types, dest: /etc/nginx/mime.types }
+    - { src: dhparam.pem, dest: /etc/ssl/certs/dhparam.pem }
+    - { src: ssl.conf, dest: /etc/nginx/includes/ssl.conf }
+    - { src: status.conf, dest: /etc/nginx/includes/status.conf }
+  notify: reload nginx
+
+- name: copy nginx app config
+  template:
+    src: rails_app.conf.j2
+    dest: /etc/nginx/conf.d/{{ nginx.app_name }}.conf
+  notify: reload nginx

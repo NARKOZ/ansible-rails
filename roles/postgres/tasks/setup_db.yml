@@ -1,0 +1,17 @@
+---
+- name: create database
+  postgresql_db:
+    name: "{{ postgres.database }}"
+  become: true
+  become_user: postgres
+
+- name: create database user
+  postgresql_user:
+    db: "{{ postgres.database }}"
+    name: "{{ postgres.username }}"
+    password: "{{ postgres.password }}"
+    priv: ALL
+    encrypted: yes
+    role_attr_flags: CREATEDB,NOSUPERUSER
+  become: true
+  become_user: postgres

@@ -1,0 +1,23 @@
+---
+- name: change redis config
+  lineinfile:
+    path: /etc/redis.conf
+    line: "{{ item }}"
+  with_items:
+    - maxmemory 512mb
+    - maxmemory-policy allkeys-lfu
+    - maxclients 20000
+  register: redis_config
+
+- name: change redis tcp-backlog
+  lineinfile:
+    path: /etc/redis.conf
+    regexp: "^tcp-backlog "
+    line: tcp-backlog 8192
+  register: redis_config
+
+- name: restart redis
+  service:
+    name: redis
+    state: restarted
+  when: redis_config.changed
